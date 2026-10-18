@@ -407,6 +407,13 @@ footer b { color: var(--fg); font-weight: 500; }
 .card:hover { border-color: var(--accent); }
 td.hl, td .hl { color: var(--accent-ink); font-weight: 600; }
 td code { white-space: nowrap; }
+
+/* Content sections share the hero's column: same max width, same gutters. */
+main > section:not(.hero) {
+  max-width: var(--wide); margin: 0 auto;
+  padding-left: 1.25rem; padding-right: 1.25rem;
+}
+@media (min-width: 44em) { main > section:not(.hero) { padding-left: 2rem; padding-right: 2rem; } }
 </style>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NMX81HBTX5"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NMX81HBTX5');</script>
@@ -508,20 +515,20 @@ td code { white-space: nowrap; }
   --report unit=reports/unit.json \
   --report integration=reports/integration.json</pre>
   <p class="muted">Nothing to install and no config file. Node 20 or newer, zero runtime dependencies. Pin the version in anything you write down. Reports are vitest or Playwright JSON: <code class="inline-code">vitest run --reporter=json --outputFile=unit.json</code>, <code class="inline-code">playwright test --reporter=json &gt; e2e.json</code>.</p>
-  <table>
+  <div class="table-scroll"><table>
     <thead><tr><th>exit</th><th>meaning</th></tr></thead>
     <tbody>
       <tr><td>0</td><td class="desc">every loss is <code>LIT</code></td></tr>
       <tr><td>1</td><td class="desc">some loss is <code>DARK-IN-PRACTICE</code> or <code>UNCLAIMED</code></td></tr>
       <tr><td>2</td><td class="desc">usage or parse error</td></tr>
     </tbody>
-  </table>
+  </table></div>
 </section>
 
 <section id="verdicts">
   <h2>The verdicts</h2>
   <p>Per claim. A loss is <code class="inline-code">LIT</code> only when every one of its claims is; otherwise it is <code class="inline-code">DARK-IN-PRACTICE</code>, headlined by its weakest claim, and the output is ordered worst first. A loss in the list with no claim block is <code class="inline-code">UNCLAIMED</code>.</p>
-  <table>
+  <div class="table-scroll"><table>
     <thead><tr><th>verdict</th><th>meaning</th></tr></thead>
     <tbody>
       <tr><td><code>LIT</code></td><td class="desc">resolved, and for tests, in a supplied report with every case passing</td></tr>
@@ -531,7 +538,7 @@ td code { white-space: nowrap; }
       <tr><td class="hl"><code>NO-REPORT</code></td><td class="desc"><b>no report was supplied for this claim&rsquo;s project at all.</b> Never a pass. A ledger checked with no reports is entirely <code>NO-REPORT</code>, and exits 1.</td></tr>
       <tr><td><code>UNRESOLVED</code></td><td class="desc">the file, symbol or commit is not in the repo</td></tr>
     </tbody>
-  </table>
+  </table></div>
 </section>
 
 <section id="format">
