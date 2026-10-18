@@ -1,5 +1,5 @@
 /**
- * The heart of lantern, and deliberately pure: it takes already-resolved
+ * The heart of ledgerlight, and deliberately pure: it takes already-resolved
  * claims plus already-parsed reports and returns verdicts. No filesystem, no
  * git, no process. Everything here is testable without a repo on disk.
  *
@@ -77,6 +77,7 @@ export interface VerdictInput {
   reports: Map<string, NormalizedReport>;
   losses: string[];
   notes?: string[];
+  warnings?: string[];
 }
 
 export function judgeClaim(
@@ -161,7 +162,7 @@ export function computeVerdicts(input: VerdictInput): VerifyResult {
   for (const b of blocks) {
     if (!losses.includes(b.loss)) {
       notes.push(
-        `ledger line ${b.line}: lantern block claims ${b.loss}, which is not in the loss list. Verified anyway.`,
+        `ledger line ${b.line}: ledgerlight block claims ${b.loss}, which is not in the loss list. Verified anyway.`,
       );
     }
   }
@@ -190,7 +191,7 @@ export function computeVerdicts(input: VerdictInput): VerifyResult {
       return {
         loss,
         verdict: 'UNCLAIMED',
-        headline: 'no lantern block; nothing is claimed to stand in front of this loss',
+        headline: 'no ledgerlight block; nothing is claimed to stand in front of this loss',
         claims: [],
       };
     }
@@ -203,7 +204,7 @@ export function computeVerdicts(input: VerdictInput): VerifyResult {
       return {
         loss,
         verdict: 'DARK-IN-PRACTICE',
-        headline: 'the lantern block covers nothing',
+        headline: 'the ledgerlight block covers nothing',
         claims,
       };
     }
@@ -233,6 +234,7 @@ export function computeVerdicts(input: VerdictInput): VerifyResult {
     projectsWithReports: [...reports.keys()].sort(),
     losses: results,
     notes,
+    warnings: [...(input.warnings ?? [])],
     summary: { total: results.length, lit, dark, unclaimed },
     exitCode: dark + unclaimed > 0 ? 1 : 0,
   };

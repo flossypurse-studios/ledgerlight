@@ -5,7 +5,7 @@
  * Format is auto-detected by shape, not by filename.
  */
 import fs from 'node:fs';
-import { LanternError } from './errors.js';
+import { LedgerlightError } from './errors.js';
 import type {
   CaseStatus,
   NormalizedReport,
@@ -22,7 +22,7 @@ function isObject(v: unknown): v is Json {
 
 export function detectFormat(data: unknown, source: string): ReportFormat {
   if (!isObject(data)) {
-    throw new LanternError('report is not a JSON object', { file: source });
+    throw new LedgerlightError('report is not a JSON object', { file: source });
   }
   if (Array.isArray(data['testResults']) || typeof data['numTotalTests'] === 'number') {
     return 'vitest';
@@ -30,7 +30,7 @@ export function detectFormat(data: unknown, source: string): ReportFormat {
   if (Array.isArray(data['suites'])) {
     return 'playwright';
   }
-  throw new LanternError(
+  throw new LedgerlightError(
     'could not tell what kind of report this is; expected a vitest JSON report (top-level "testResults"/"numTotalTests") or a playwright JSON report (top-level "suites")',
     { file: source },
   );
@@ -56,7 +56,7 @@ function vitestStatus(raw: unknown): CaseStatus {
 function parseVitest(data: Json, source: string): ReportFile[] {
   const results = data['testResults'];
   if (!Array.isArray(results)) {
-    throw new LanternError('vitest report has no "testResults" array', {
+    throw new LedgerlightError('vitest report has no "testResults" array', {
       file: source,
     });
   }
@@ -65,7 +65,7 @@ function parseVitest(data: Json, source: string): ReportFile[] {
     if (!isObject(entry)) continue;
     const name = entry['name'];
     if (typeof name !== 'string') {
-      throw new LanternError(
+      throw new LedgerlightError(
         'vitest report has a testResults entry with no "name" path',
         { file: source },
       );
@@ -146,7 +146,7 @@ function parsePlaywright(data: Json, source: string): ReportFile[] {
         const specFile =
           typeof spec['file'] === 'string' && spec['file'] !== '' ? spec['file'] : file;
         if (specFile === undefined) {
-          throw new LanternError(
+          throw new LedgerlightError(
             'playwright report has a spec with no "file" path anywhere up its suite chain',
             { file: source },
           );
@@ -176,7 +176,7 @@ function parsePlaywright(data: Json, source: string): ReportFile[] {
 
   const suites = data['suites'];
   if (!Array.isArray(suites)) {
-    throw new LanternError('playwright report has no "suites" array', {
+    throw new LedgerlightError('playwright report has no "suites" array', {
       file: source,
     });
   }
@@ -201,7 +201,7 @@ export function loadReport(project: string, filePath: string): NormalizedReport 
   try {
     raw = fs.readFileSync(filePath, 'utf8');
   } catch {
-    throw new LanternError(`could not read report for project "${project}"`, {
+    throw new LedgerlightError(`could not read report for project "${project}"`, {
       file: filePath,
     });
   }
@@ -209,7 +209,7 @@ export function loadReport(project: string, filePath: string): NormalizedReport 
   try {
     data = JSON.parse(raw);
   } catch (err) {
-    throw new LanternError(
+    throw new LedgerlightError(
       `report for project "${project}" is not valid JSON: ${(err as Error).message}`,
       { file: filePath },
     );

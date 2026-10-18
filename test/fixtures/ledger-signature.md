@@ -1,12 +1,12 @@
-# Ironwood Trust — loss ledger (signature case)
+# Harbour Supply Co. — loss ledger (signature case)
 
-Synthetic ledger invented for lantern's own tests.
+Synthetic ledger invented for ledgerlight's own tests.
 
-This one exists to demonstrate the verdict lantern was written for. Both
+This one exists to demonstrate the verdict ledgerlight was written for. Both
 entries below read, in prose, as covered. One of them is covered by a test in a
 project nobody runs.
 
-```lantern-config
+```ledgerlight-config
 repo: ./repo
 ```
 
@@ -20,7 +20,7 @@ repo: ./repo
 **L1** — The ask cooldown is enforced in one place and unit-tested against the
 boundary day in both directions.
 
-```lantern
+```ledgerlight
 loss: L1
 covers:
   - test: test/unit/refund-guards.test.ts
@@ -31,7 +31,7 @@ covers:
 every table in the manifest after the erase. The test is real, it is well
 written, and a green run of the default test command says nothing about it.
 
-```lantern
+```ledgerlight
 loss: L8
 covers:
   - test: test/integration/erasure-completeness.test.ts

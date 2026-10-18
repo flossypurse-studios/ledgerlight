@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseYamlSubset, stripComment } from '../src/yaml.js';
-import { LanternError } from '../src/errors.js';
+import { LedgerlightError } from '../src/errors.js';
 
 const F = 'ledger.md';
 
@@ -143,8 +143,8 @@ describe('parseYamlSubset', () => {
       } catch (err) {
         caught = err;
       }
-      expect(caught).toBeInstanceOf(LanternError);
-      const e = caught as LanternError;
+      expect(caught).toBeInstanceOf(LedgerlightError);
+      const e = caught as LedgerlightError;
       expect(e.file).toBe('ledger.md');
       expect(e.line).toBe(43);
       expect(e.format()).toMatch(/^ledger\.md:43: /);

@@ -285,7 +285,7 @@ describe('per-loss roll-up', () => {
 });
 
 describe('UNCLAIMED', () => {
-  it('flags a loss in the list with no lantern block', () => {
+  it('flags a loss in the list with no ledgerlight block', () => {
     const r = computeVerdicts({
       ledgerPath: 'l.md',
       repoRoot: REPO,

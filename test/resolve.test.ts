@@ -2,7 +2,7 @@
  * The I/O half. Commit checks need a real repository, so these build a
  * throwaway one under the OS temp directory. Nothing here touches the
  * workspace, and nothing here is skipped: a skipped guard is the exact thing
- * lantern exists to catch, so it would be poor form to ship one.
+ * ledgerlight exists to catch, so it would be poor form to ship one.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
@@ -24,12 +24,12 @@ function initRepo(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
   git(dir, ['init', '-q', '-b', 'main']);
   git(dir, ['config', 'user.email', 'fixture@example.invalid']);
-  git(dir, ['config', 'user.name', 'Lantern Fixture']);
+  git(dir, ['config', 'user.name', 'Ledgerlight Fixture']);
   git(dir, ['config', 'commit.gpgsign', 'false']);
 }
 
 beforeAll(() => {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'lantern-test-'));
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'ledgerlight-test-'));
   repoDir = path.join(base, 'outer');
   nestedDir = path.join(repoDir, 'app');
 
@@ -47,7 +47,7 @@ beforeAll(() => {
   headSha = git(repoDir, ['rev-parse', 'HEAD']);
 
   // A second repository nested inside the first: the shape that motivated
-  // lantern's insistence on using the repo path exactly as given.
+  // ledgerlight's insistence on using the repo path exactly as given.
   initRepo(nestedDir);
   fs.writeFileSync(path.join(nestedDir, 'inner.ts'), 'export const inner = 1;\n');
   git(nestedDir, ['add', '-A']);
@@ -194,7 +194,7 @@ describe('resolveClaim', () => {
   });
 
   it('does not resolve commits when the path is not a git repository', () => {
-    const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'lantern-plain-'));
+    const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'ledgerlight-plain-'));
     try {
       const r = resolveClaim({ kind: 'commit', commit: 'abc1234', line: 1 }, {
         root: plain,

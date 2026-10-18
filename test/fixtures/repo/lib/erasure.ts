@@ -1,4 +1,4 @@
-// Synthetic fixture source. Invented for lantern's tests; not real code.
+// Synthetic fixture source. Invented for ledgerlight's tests; not real code.
 
 export async function eraseSubject(id: string, tables: string[]) {
   return { id, cleared: tables.length };

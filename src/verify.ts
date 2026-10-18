@@ -5,14 +5,14 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { LanternError } from './errors.js';
+import { LedgerlightError } from './errors.js';
 import { parseLedger } from './parse-ledger.js';
 import { loadReport } from './reports.js';
 import { openRepo, resolveBlocks } from './resolve.js';
 import { computeVerdicts } from './verdict.js';
 import type { NormalizedReport, VerifyResult } from './types.js';
 
-export const USAGE = `lantern verify <ledger.md> [--report <project>=<report.json>]... [--json]
+export const USAGE = `ledgerlight verify <ledger.md> [--report <project>=<report.json>]... [--json]
 
 Checks that the tests a loss ledger cites actually ran in the run you are
 quoting. Not an existence checker: a test that exists but never executed is
@@ -33,14 +33,14 @@ export interface Args {
 }
 
 export function parseArgs(argv: string[]): Args {
-  if (argv.length === 0) throw new LanternError(USAGE);
+  if (argv.length === 0) throw new LedgerlightError(USAGE);
 
   const command = argv[0]!;
   if (command === '--help' || command === '-h' || command === 'help') {
-    throw new LanternError(USAGE);
+    throw new LedgerlightError(USAGE);
   }
   if (command !== 'verify') {
-    throw new LanternError(`unknown command "${command}"\n\n${USAGE}`);
+    throw new LedgerlightError(`unknown command "${command}"\n\n${USAGE}`);
   }
 
   const rest = argv.slice(1);
@@ -57,29 +57,29 @@ export function parseArgs(argv: string[]): Args {
         ? arg.slice('--report='.length)
         : rest[++i];
       if (value === undefined) {
-        throw new LanternError('--report needs a value of the form <project>=<path>');
+        throw new LedgerlightError('--report needs a value of the form <project>=<path>');
       }
       const eq = value.indexOf('=');
       if (eq <= 0 || eq === value.length - 1) {
-        throw new LanternError(`--report must look like <project>=<path>, got "${value}"`);
+        throw new LedgerlightError(`--report must look like <project>=<path>, got "${value}"`);
       }
       const project = value.slice(0, eq);
       const file = value.slice(eq + 1);
       if (reports.some((r) => r.project === project)) {
-        throw new LanternError(`--report given twice for project "${project}"`);
+        throw new LedgerlightError(`--report given twice for project "${project}"`);
       }
       reports.push({ project, file });
     } else if (arg.startsWith('-')) {
-      throw new LanternError(`unknown option "${arg}"\n\n${USAGE}`);
+      throw new LedgerlightError(`unknown option "${arg}"\n\n${USAGE}`);
     } else if (ledger === undefined) {
       ledger = arg;
     } else {
-      throw new LanternError(`unexpected extra argument "${arg}"\n\n${USAGE}`);
+      throw new LedgerlightError(`unexpected extra argument "${arg}"\n\n${USAGE}`);
     }
   }
 
   if (ledger === undefined) {
-    throw new LanternError(`verify needs a ledger path\n\n${USAGE}`);
+    throw new LedgerlightError(`verify needs a ledger path\n\n${USAGE}`);
   }
   return { ledger, reports, json };
 }
@@ -91,7 +91,7 @@ export function verify(args: Args): VerifyResult {
   try {
     text = fs.readFileSync(ledgerPath, 'utf8');
   } catch {
-    throw new LanternError(`could not read ledger: ${args.ledger}`);
+    throw new LedgerlightError(`could not read ledger: ${args.ledger}`);
   }
 
   const parsed = parseLedger(text, args.ledger);
@@ -123,5 +123,6 @@ export function verify(args: Args): VerifyResult {
     reports,
     losses: parsed.losses,
     notes,
+    warnings: parsed.warnings,
   });
 }

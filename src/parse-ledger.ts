@@ -1,7 +1,7 @@
 /**
  * Ledger parsing: forgiving over prose, strict over fenced blocks.
  */
-import { LanternError } from './errors.js';
+import { LedgerlightError } from './errors.js';
 import { parseYamlSubset, type YamlItem } from './yaml.js';
 import type { Claim, ClaimBlock, LedgerConfig, ParsedLedger } from './types.js';
 
@@ -155,7 +155,7 @@ function parseClaimItem(item: YamlItem, file: string): Claim {
           : null;
 
   if (!kind) {
-    throw new LanternError(
+    throw new LedgerlightError(
       `claim has no recognised kind; expected one of test, file, symbol, commit (got: ${keys.join(', ') || 'nothing'})`,
       { file, line: item.line },
     );
@@ -164,7 +164,7 @@ function parseClaimItem(item: YamlItem, file: string): Claim {
   const allowed = CLAIM_KEYS[kind]!;
   for (const entry of item.entries) {
     if (!allowed.includes(entry.key)) {
-      throw new LanternError(
+      throw new LedgerlightError(
         `unexpected key "${entry.key}" on a ${kind} claim; a ${kind} claim takes ${allowed.map((k) => `"${k}"`).join(' and ')}`,
         { file, line: entry.line },
       );
@@ -173,13 +173,13 @@ function parseClaimItem(item: YamlItem, file: string): Claim {
   for (const required of allowed) {
     const v = get(required);
     if (v === undefined) {
-      throw new LanternError(
+      throw new LedgerlightError(
         `a ${kind} claim requires a "${required}" key`,
         { file, line: item.line },
       );
     }
     if (v === '') {
-      throw new LanternError(`"${required}" must not be empty`, {
+      throw new LedgerlightError(`"${required}" must not be empty`, {
         file,
         line: item.entries.find((e) => e.key === required)!.line,
       });
@@ -203,16 +203,16 @@ export function parseClaimBlock(fence: Fence, file: string): ClaimBlock {
 
   for (const s of doc.scalars) {
     if (s.key !== 'loss') {
-      throw new LanternError(
-        `unexpected key "${s.key}" in a lantern block; expected "loss" and "covers"`,
+      throw new LedgerlightError(
+        `unexpected key "${s.key}" in a ledgerlight block; expected "loss" and "covers"`,
         { file, line: s.line },
       );
     }
   }
   for (const l of doc.lists) {
     if (l.key !== 'covers') {
-      throw new LanternError(
-        `unexpected key "${l.key}" in a lantern block; expected "loss" and "covers"`,
+      throw new LedgerlightError(
+        `unexpected key "${l.key}" in a ledgerlight block; expected "loss" and "covers"`,
         { file, line: l.line },
       );
     }
@@ -220,13 +220,13 @@ export function parseClaimBlock(fence: Fence, file: string): ClaimBlock {
 
   const loss = doc.scalars.find((s) => s.key === 'loss');
   if (!loss) {
-    throw new LanternError('lantern block is missing a "loss" key', {
+    throw new LedgerlightError('ledgerlight block is missing a "loss" key', {
       file,
       line: fence.fenceLine,
     });
   }
   if (!/^L\d+$/.test(loss.value)) {
-    throw new LanternError(
+    throw new LedgerlightError(
       `loss identifier must look like "L8", got "${loss.value}"`,
       { file, line: loss.line },
     );
@@ -234,8 +234,8 @@ export function parseClaimBlock(fence: Fence, file: string): ClaimBlock {
 
   const covers = doc.lists.find((l) => l.key === 'covers');
   if (!covers) {
-    throw new LanternError(
-      `lantern block for ${loss.value} is missing a "covers" list`,
+    throw new LedgerlightError(
+      `ledgerlight block for ${loss.value} is missing a "covers" list`,
       { file, line: fence.fenceLine },
     );
   }
@@ -250,22 +250,22 @@ export function parseClaimBlock(fence: Fence, file: string): ClaimBlock {
 export function parseConfigBlock(fence: Fence, file: string): LedgerConfig {
   const doc = parseYamlSubset(fence.body, file, fence.bodyLine);
   if (doc.lists.length > 0) {
-    throw new LanternError(
-      `unexpected key "${doc.lists[0]!.key}" in lantern-config; expected only "repo"`,
+    throw new LedgerlightError(
+      `unexpected key "${doc.lists[0]!.key}" in ledgerlight-config; expected only "repo"`,
       { file, line: doc.lists[0]!.line },
     );
   }
   for (const s of doc.scalars) {
     if (s.key !== 'repo') {
-      throw new LanternError(
-        `unexpected key "${s.key}" in lantern-config; expected only "repo"`,
+      throw new LedgerlightError(
+        `unexpected key "${s.key}" in ledgerlight-config; expected only "repo"`,
         { file, line: s.line },
       );
     }
   }
   const repo = doc.scalars.find((s) => s.key === 'repo');
   if (!repo) {
-    throw new LanternError('lantern-config block is missing a "repo" key', {
+    throw new LedgerlightError('ledgerlight-config block is missing a "repo" key', {
       file,
       line: fence.fenceLine,
     });
@@ -273,19 +273,43 @@ export function parseConfigBlock(fence: Fence, file: string): LedgerConfig {
   return { repo: repo.value, line: repo.line };
 }
 
-export function parseLedger(text: string, ledgerPath: string): ParsedLedger {
-  const { fences, proseLines } = scanMarkdown(text);
+/**
+ * Fence tags from before the rename (the tool was called lantern). Still read,
+ * so existing ledgers keep working, with one warning per ledger.
+ */
+const DEPRECATED_TAGS: Record<string, string> = {
+  'lantern-config': 'ledgerlight-config',
+  lantern: 'ledgerlight',
+};
 
-  const configFences = fences.filter((f) => f.info === 'lantern-config');
+export function parseLedger(text: string, ledgerPath: string): ParsedLedger {
+  const scanned = scanMarkdown(text);
+  const { proseLines } = scanned;
+
+  const warnings: string[] = [];
+  const oldTags = new Set<string>();
+  const fences = scanned.fences.map((f) => {
+    const renamed = DEPRECATED_TAGS[f.info];
+    if (renamed === undefined) return f;
+    oldTags.add(f.info);
+    return { ...f, info: renamed };
+  });
+  if (oldTags.size > 0) {
+    warnings.push(
+      `${ledgerPath}: deprecated fence tags ${[...oldTags].map((t) => `"${t}"`).join(' and ')}; rename them to ${[...oldTags].map((t) => `"${DEPRECATED_TAGS[t]}"`).join(' and ')}`,
+    );
+  }
+
+  const configFences = fences.filter((f) => f.info === 'ledgerlight-config');
   if (configFences.length === 0) {
-    throw new LanternError(
-      'no ```lantern-config block found; lantern needs one to know which repository the citations resolve against',
+    throw new LedgerlightError(
+      'no ```ledgerlight-config block found; ledgerlight needs one to know which repository the citations resolve against',
       { file: ledgerPath },
     );
   }
   if (configFences.length > 1) {
-    throw new LanternError(
-      `found ${configFences.length} lantern-config blocks; there must be exactly one (the others are at lines ${configFences
+    throw new LedgerlightError(
+      `found ${configFences.length} ledgerlight-config blocks; there must be exactly one (the others are at lines ${configFences
         .slice(1)
         .map((f) => f.fenceLine)
         .join(', ')})`,
@@ -295,15 +319,15 @@ export function parseLedger(text: string, ledgerPath: string): ParsedLedger {
   const config = parseConfigBlock(configFences[0]!, ledgerPath);
 
   const blocks = fences
-    .filter((f) => f.info === 'lantern')
+    .filter((f) => f.info === 'ledgerlight')
     .map((f) => parseClaimBlock(f, ledgerPath));
 
   const seen = new Map<string, number>();
   for (const b of blocks) {
     const prev = seen.get(b.loss);
     if (prev !== undefined) {
-      throw new LanternError(
-        `duplicate lantern block for ${b.loss} (first one is at line ${prev})`,
+      throw new LedgerlightError(
+        `duplicate ledgerlight block for ${b.loss} (first one is at line ${prev})`,
         { file: ledgerPath, line: b.line },
       );
     }
@@ -312,11 +336,11 @@ export function parseLedger(text: string, ledgerPath: string): ParsedLedger {
 
   const losses = extractLossList(proseLines);
   if (losses === null) {
-    throw new LanternError(
-      'no loss-list section found; lantern looks for a heading whose text contains "loss list". Without it lantern cannot tell an unclaimed loss from an absent one, so it will not report zero losses instead.',
+    throw new LedgerlightError(
+      'no loss-list section found; ledgerlight looks for a heading whose text contains "loss list". Without it ledgerlight cannot tell an unclaimed loss from an absent one, so it will not report zero losses instead.',
       { file: ledgerPath },
     );
   }
 
-  return { ledgerPath, config, blocks, losses };
+  return { ledgerPath, config, blocks, losses, warnings };
 }

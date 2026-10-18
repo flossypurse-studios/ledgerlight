@@ -1,22 +1,42 @@
-# AGENT.md — lantern
+# AGENT.md — ledgerlight
 
-Orientation for AI agents working on this repo. lantern is a CLI that
-verifies loss-ledger coverage claims against real test reports: it reads a
-ledger's `lantern-config`/`lantern` blocks, reads the vitest/Playwright JSON
+Orientation for AI agents working on this repo. ledgerlight (called lantern
+until 2026-10-18) is a CLI that verifies loss-ledger coverage claims against
+real test reports: it reads a ledger's `ledgerlight-config`/`ledgerlight`
+blocks (the old `lantern-config`/`lantern` tags are still read, with one
+warning), reads the vitest/Playwright JSON
 reports you point it at, and reports whether each claimed check actually
 ran and passed — not just whether the referenced file exists.
+
+## Status and release
+
+- Repo: github.com/flossypurse-studios/ledgerlight (public, MIT; renamed from
+  `lantern`, GitHub redirects the old URL). Site: `site/`, deployed to the
+  Vercel project `ledgerlight` (flossypurse-studios team) at
+  ledgerlight.vercel.app; ledgerlight.dev is not bought yet.
+- npm: `ledgerlight`, **not published yet.** The first publish has to be done
+  by hand with the owner's npm sign-in; after that, releases go through
+  `.github/workflows/publish.yml` (OIDC trusted publishing, provenance, actions
+  pinned to SHAs, npm pinned to 11.21.1), triggered only by a `v*` tag.
+- Build `dist/` explicitly (`npm run build`) before `npm pack` / `npm publish`.
+  There is a `prepack` script, but a machine with `ignore-scripts=true` in its
+  npmrc (the workspace Mac has it) skips it and packs a tarball with no bin;
+  packproof caught exactly that on 2026-10-18. Before any release: `npm test`,
+  `npm run build`, `npm pack`, `npx packproof@0.16.1 ./ledgerlight-<v>.tgz`.
+- Deploy the site: `cd site && vercel deploy` (preview), check it, then
+  `vercel deploy --prod`.
 
 ## Architecture
 
 `src/` is split by concern, not by command:
 
-- **ledger parsing** — extracts `lantern-config` and `lantern` fenced
+- **ledger parsing** — extracts `ledgerlight-config` and `ledgerlight` fenced
   blocks from a markdown file into structured losses and claims.
 - **report parsing** — normalizes vitest JSON reporter output and
   Playwright JSON reporter output into one internal shape (test path,
   project, status).
 - **repo resolution** — resolves `file:`, `symbol:`, and `commit:` claims
-  against the repo path from `lantern-config`. This is the only layer that
+  against the repo path from `ledgerlight-config`. This is the only layer that
   touches the filesystem or shells out to git.
 - **verdict logic** — pure. See the hard rule below.
 - **rendering** — turns verdicts into the human-readable table and the
@@ -42,7 +62,7 @@ layer up instead.
 Every fixture in `test/` — ledgers, repo trees, report JSON — is invented.
 No real ledger, loss description, file path, or commit hash from any
 private project ever enters this package, in code, tests, comments, or
-commit messages. lantern is meant to ship as a public npm package; the
+commit messages. ledgerlight is meant to ship as a public npm package; the
 ledgers it reads never are. If a bug report or example arrives with real
 ledger content attached, invent an equivalent fixture instead of copying it
 in.

@@ -1,4 +1,4 @@
-// Synthetic fixture source. Invented for lantern's tests; not real code.
+// Synthetic fixture source. Invented for ledgerlight's tests; not real code.
 
 import { withinAskWindow } from './refund-guards.js';
 

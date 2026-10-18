@@ -8,27 +8,27 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FIX = path.join(HERE, 'fixtures');
 
 function ledger(body: string): string {
-  return ['```lantern-config', 'repo: ./repo', '```', '', '## Loss list', '', body].join('\n');
+  return ['```ledgerlight-config', 'repo: ./repo', '```', '', '## Loss list', '', body].join('\n');
 }
 
 describe('scanMarkdown', () => {
   it('finds fences with their info strings and line numbers', () => {
-    const { fences } = scanMarkdown(['# t', '', '```lantern', 'loss: L1', '```'].join('\n'));
+    const { fences } = scanMarkdown(['# t', '', '```ledgerlight', 'loss: L1', '```'].join('\n'));
     expect(fences).toHaveLength(1);
-    expect(fences[0]!.info).toBe('lantern');
+    expect(fences[0]!.info).toBe('ledgerlight');
     expect(fences[0]!.fenceLine).toBe(3);
     expect(fences[0]!.bodyLine).toBe(4);
     expect(fences[0]!.body).toBe('loss: L1');
   });
 
   it('blanks fenced regions out of the prose view', () => {
-    const { proseLines } = scanMarkdown(['**L1** x', '```lantern', '**L2** y', '```'].join('\n'));
+    const { proseLines } = scanMarkdown(['**L1** x', '```ledgerlight', '**L2** y', '```'].join('\n'));
     expect(proseLines.filter((l) => l !== '')).toEqual(['**L1** x']);
   });
 
   it('handles fences longer than three backticks', () => {
-    const { fences } = scanMarkdown(['````lantern', 'loss: L1', '````'].join('\n'));
-    expect(fences[0]!.info).toBe('lantern');
+    const { fences } = scanMarkdown(['````ledgerlight', 'loss: L1', '````'].join('\n'));
+    expect(fences[0]!.info).toBe('ledgerlight');
     expect(fences[0]!.body).toBe('loss: L1');
   });
 });
@@ -96,7 +96,7 @@ describe('extractLossList', () => {
   });
 
   it('never sees ids inside fenced blocks', () => {
-    const md = ['## Loss list', '- **L1** — a', '```lantern', 'loss: L2', '```'].join('\n');
+    const md = ['## Loss list', '- **L1** — a', '```ledgerlight', 'loss: L2', '```'].join('\n');
     expect(list(md)).toEqual(['L1']);
   });
 
@@ -111,7 +111,7 @@ describe('parseLedger — claim blocks', () => {
       [
         '- **L8** — a',
         '',
-        '```lantern',
+        '```ledgerlight',
         'loss: L8',
         'covers:',
         '  - test: test/unit/a.test.ts',
@@ -164,13 +164,13 @@ describe('parseLedger — claim blocks', () => {
     ['a block with no covers list', ['loss: L1'], /missing a "covers" list/],
     [
       'an unknown top-level key in the block',
-      ['loss: L1', 'owner: cully', 'covers:', '  - file: a.ts'],
-      /unexpected key "owner" in a lantern block/,
+      ['loss: L1', 'owner: someone', 'covers:', '  - file: a.ts'],
+      /unexpected key "owner" in a ledgerlight block/,
     ],
     [
       'an unknown top-level list in the block',
       ['loss: L1', 'notes:', '  - file: a.ts', 'covers:', '  - file: b.ts'],
-      /unexpected key "notes" in a lantern block/,
+      /unexpected key "notes" in a ledgerlight block/,
     ],
     [
       'a malformed loss identifier',
@@ -186,7 +186,7 @@ describe('parseLedger — claim blocks', () => {
 
   for (const [name, lines, pattern] of bad) {
     it(`rejects ${name}`, () => {
-      const md = ledger(['- **L1** — a', '', '```lantern', ...lines, '```'].join('\n'));
+      const md = ledger(['- **L1** — a', '', '```ledgerlight', ...lines, '```'].join('\n'));
       expect(() => parseLedger(md, 'l.md')).toThrow(pattern);
     });
   }
@@ -196,23 +196,44 @@ describe('parseLedger — claim blocks', () => {
       [
         '- **L1** — a',
         '',
-        '```lantern',
+        '```ledgerlight',
         'loss: L1',
         'covers:',
         '  - file: a.ts',
         '```',
         '',
-        '```lantern',
+        '```ledgerlight',
         'loss: L1',
         'covers:',
         '  - file: b.ts',
         '```',
       ].join('\n'),
     );
-    expect(() => parseLedger(md, 'l.md')).toThrow(/duplicate lantern block for L1/);
+    expect(() => parseLedger(md, 'l.md')).toThrow(/duplicate ledgerlight block for L1/);
   });
 
-  it('ignores fenced blocks that are not lantern blocks', () => {
+  it('counts an old lantern-config and a new ledgerlight-config as two config blocks', () => {
+    const md = ['```lantern-config', 'repo: ./a', '```', '```ledgerlight-config', 'repo: ./b', '```', '## Loss list'].join('\n');
+    expect(() => parseLedger(md, 'l.md')).toThrow(/found 2 ledgerlight-config blocks/);
+  });
+
+  it('treats an old lantern block and a new ledgerlight block for one loss as a duplicate', () => {
+    const md = ledger(
+      ['- **L1** — a', '```lantern', 'loss: L1', 'covers:', '  - file: a.ts', '```', '```ledgerlight', 'loss: L1', 'covers:', '  - file: b.ts', '```'].join('\n'),
+    );
+    expect(() => parseLedger(md, 'l.md')).toThrow(/duplicate ledgerlight block for L1/);
+  });
+
+  it('warns only for the old tags actually used', () => {
+    const md = ledger(['- **L1** — a', '```lantern', 'loss: L1', 'covers:', '  - file: a.ts', '```'].join('\n'));
+    const parsed = parseLedger(md, 'l.md');
+    expect(parsed.blocks.map((b) => b.loss)).toEqual(['L1']);
+    expect(parsed.warnings).toHaveLength(1);
+    expect(parsed.warnings[0]).toContain('"lantern"');
+    expect(parsed.warnings[0]).not.toContain('lantern-config');
+  });
+
+  it('ignores fenced blocks that are not ledgerlight blocks', () => {
     const md = ledger(
       ['- **L1** — a', '', '```ts', 'const x = 1;', '```'].join('\n'),
     );
@@ -223,19 +244,19 @@ describe('parseLedger — claim blocks', () => {
 describe('parseLedger — config block', () => {
   it('requires exactly one config block', () => {
     expect(() => parseLedger('## Loss list\n\n- **L1** — a', 'l.md')).toThrow(
-      /no ```lantern-config block found/,
+      /no ```ledgerlight-config block found/,
     );
-    const two = ['```lantern-config', 'repo: ./a', '```', '```lantern-config', 'repo: ./b', '```', '## Loss list'].join('\n');
-    expect(() => parseLedger(two, 'l.md')).toThrow(/found 2 lantern-config blocks/);
+    const two = ['```ledgerlight-config', 'repo: ./a', '```', '```ledgerlight-config', 'repo: ./b', '```', '## Loss list'].join('\n');
+    expect(() => parseLedger(two, 'l.md')).toThrow(/found 2 ledgerlight-config blocks/);
   });
 
   it('rejects an unknown key in the config', () => {
-    const md = ['```lantern-config', 'repo: ./a', 'branch: main', '```', '## Loss list'].join('\n');
-    expect(() => parseLedger(md, 'l.md')).toThrow(/unexpected key "branch" in lantern-config/);
+    const md = ['```ledgerlight-config', 'repo: ./a', 'branch: main', '```', '## Loss list'].join('\n');
+    expect(() => parseLedger(md, 'l.md')).toThrow(/unexpected key "branch" in ledgerlight-config/);
   });
 
   it('rejects a config with no repo', () => {
-    const md = ['```lantern-config', '# nothing here', '```', '## Loss list'].join('\n');
+    const md = ['```ledgerlight-config', '# nothing here', '```', '## Loss list'].join('\n');
     expect(() => parseLedger(md, 'l.md')).toThrow(/missing a "repo" key/);
   });
 });

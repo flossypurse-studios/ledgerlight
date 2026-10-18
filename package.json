@@ -1,31 +1,42 @@
 {
-  "name": "@flossypurse-studios/lantern",
+  "name": "ledgerlight",
   "version": "0.1.0",
   "publishConfig": {
     "access": "public"
   },
-  "description": "Execution checker for loss-ledger claims: did the check standing in front of this harm actually run, in the run you are quoting?",
+  "description": "Checks that the tests a loss ledger cites actually ran in the run you are quoting. NO-REPORT is never a pass.",
+  "keywords": [
+    "loss-ledger",
+    "testing",
+    "test-coverage",
+    "vitest",
+    "playwright",
+    "cli",
+    "ci"
+  ],
   "license": "MIT",
   "author": "FlossyPurse Studios",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/flossypurse-studios/lantern.git"
+    "url": "git+https://github.com/flossypurse-studios/ledgerlight.git"
   },
-  "homepage": "https://github.com/flossypurse-studios/lantern",
+  "homepage": "https://github.com/flossypurse-studios/ledgerlight#readme",
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "bin": {
-    "lantern": "dist/cli.js"
+    "ledgerlight": "dist/cli.js"
   },
   "files": [
-    "dist",
+    "dist/**/*.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -33,5 +44,8 @@
     "@types/node": "^22.10.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.7"
+  },
+  "bugs": {
+    "url": "https://github.com/flossypurse-studios/ledgerlight/issues"
   }
 }

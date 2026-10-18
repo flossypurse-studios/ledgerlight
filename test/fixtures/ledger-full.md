@@ -1,9 +1,9 @@
-# Ironwood Trust — loss ledger
+# Harbour Supply Co. — loss ledger
 
-Synthetic ledger invented for lantern's own tests. Every name, path and
+Synthetic ledger invented for ledgerlight's own tests. Every name, path and
 identifier below is made up.
 
-```lantern-config
+```ledgerlight-config
 repo: ./repo
 ```
 
@@ -24,7 +24,7 @@ repo: ./repo
 **L1** — The ask cooldown is enforced in one place and unit-tested against the
 boundary day in both directions.
 
-```lantern
+```ledgerlight
 loss: L1
 covers:
   - test: test/unit/refund-guards.test.ts
@@ -35,7 +35,7 @@ covers:
 **L2** — Erasure completeness is checked by an integration test that reads back
 every table in the manifest after the erase.
 
-```lantern
+```ledgerlight
 # The gated one. This test needs a database, so it lives in a separate
 # project and does not run under the default command.
 loss: L2
@@ -48,7 +48,7 @@ covers:
 
 **L3** — Retention is swept nightly and the sweep asserts its own read-back.
 
-```lantern
+```ledgerlight
 loss: L3
 covers:
   - test: test/unit/retention.test.ts
@@ -57,7 +57,7 @@ covers:
 
 **L4** — Holdback windows are evaluated before any outbound send.
 
-```lantern
+```ledgerlight
 loss: L4
 covers:
   - test: test/unit/holdback.test.ts
@@ -66,7 +66,7 @@ covers:
 
 **L5** — Consent scope is carried on the record and re-checked at use.
 
-```lantern
+```ledgerlight
 loss: L5
 covers:
   - test: test/unit/quota-scope.test.ts
@@ -75,7 +75,7 @@ covers:
 
 **L6** — Recommendations come from the executor and nowhere else.
 
-```lantern
+```ledgerlight
 loss: L6
 covers:
   - symbol: applyRefund

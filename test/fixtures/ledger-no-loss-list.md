@@ -1,10 +1,10 @@
-# Ironwood Trust — notes
+# Harbour Supply Co. — notes
 
-Synthetic ledger invented for lantern's own tests. It has a config block and a
-claim block but no loss-list section at all, so lantern must say so rather than
+Synthetic ledger invented for ledgerlight's own tests. It has a config block and a
+claim block but no loss-list section at all, so ledgerlight must say so rather than
 quietly reporting zero losses.
 
-```lantern-config
+```ledgerlight-config
 repo: ./repo
 ```
 
@@ -12,7 +12,7 @@ repo: ./repo
 
 **L1** — The ask cooldown is enforced in one place.
 
-```lantern
+```ledgerlight
 loss: L1
 covers:
   - file: lib/refund-guards.ts

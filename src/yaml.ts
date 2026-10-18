@@ -1,5 +1,5 @@
 /**
- * A deliberately tiny YAML subset parser, hand-rolled so that lantern has no
+ * A deliberately tiny YAML subset parser, hand-rolled so that ledgerlight has no
  * runtime dependencies.
  *
  * What it accepts, and nothing more:
@@ -16,7 +16,7 @@
  * silently drop a claim, because a silently dropped claim is exactly the class
  * of failure this tool exists to catch.
  */
-import { LanternError } from './errors.js';
+import { LedgerlightError } from './errors.js';
 
 export interface YamlEntry {
   key: string;
@@ -75,7 +75,7 @@ function unquote(raw: string, file: string, line: number): string {
       return v.slice(1, -1);
     }
     if (first === '"' || first === "'") {
-      throw new LanternError(`unterminated quoted string: ${v}`, { file, line });
+      throw new LedgerlightError(`unterminated quoted string: ${v}`, { file, line });
     }
   }
   return v;
@@ -85,7 +85,7 @@ function indentOf(line: string, file: string, lineNo: number): number {
   let n = 0;
   while (n < line.length && line[n] === ' ') n++;
   if (line[n] === '\t') {
-    throw new LanternError('tabs are not allowed for indentation', {
+    throw new LedgerlightError('tabs are not allowed for indentation', {
       file,
       line: lineNo,
     });
@@ -100,7 +100,7 @@ function addEntry(
   context: string,
 ): void {
   if (entries.some((e) => e.key === entry.key)) {
-    throw new LanternError(`duplicate key "${entry.key}" in ${context}`, {
+    throw new LedgerlightError(`duplicate key "${entry.key}" in ${context}`, {
       file,
       line: entry.line,
     });
@@ -137,14 +137,14 @@ export function parseYamlSubset(
 
     if (indent === 0) {
       if (body.startsWith('- ')) {
-        throw new LanternError(
+        throw new LedgerlightError(
           'list item at top level; lists must be indented under a key',
           { file, line: lineNo },
         );
       }
       const m = KEY_RE.exec(body);
       if (!m) {
-        throw new LanternError(`expected "key: value", got: ${body}`, {
+        throw new LedgerlightError(`expected "key: value", got: ${body}`, {
           file,
           line: lineNo,
         });
@@ -153,7 +153,7 @@ export function parseYamlSubset(
       const rest = (m[2] ?? '').trim();
 
       if (doc.scalars.some((e) => e.key === key) || doc.lists.some((l) => l.key === key)) {
-        throw new LanternError(`duplicate key "${key}"`, { file, line: lineNo });
+        throw new LedgerlightError(`duplicate key "${key}"`, { file, line: lineNo });
       }
 
       if (rest === '') {
@@ -172,7 +172,7 @@ export function parseYamlSubset(
 
     // indented
     if (!openList) {
-      throw new LanternError(
+      throw new LedgerlightError(
         'unexpected indented line; it does not belong to any key',
         { file, line: lineNo },
       );
@@ -180,7 +180,7 @@ export function parseYamlSubset(
 
     if (body.startsWith('-')) {
       if (!body.startsWith('- ')) {
-        throw new LanternError('list item must be written as "- key: value"', {
+        throw new LedgerlightError('list item must be written as "- key: value"', {
           file,
           line: lineNo,
         });
@@ -188,14 +188,14 @@ export function parseYamlSubset(
       if (itemIndent === -1) {
         itemIndent = indent;
       } else if (indent !== itemIndent) {
-        throw new LanternError(
+        throw new LedgerlightError(
           `inconsistent list indentation under "${openList.key}" (expected ${itemIndent} spaces, got ${indent})`,
           { file, line: lineNo },
         );
       }
       const m = KEY_RE.exec(body.slice(2).trim());
       if (!m) {
-        throw new LanternError(
+        throw new LedgerlightError(
           `expected "- key: value", got: ${body}`,
           { file, line: lineNo },
         );
@@ -213,20 +213,20 @@ export function parseYamlSubset(
 
     // continuation key of the current list item
     if (!currentItem || itemIndent === -1) {
-      throw new LanternError(
+      throw new LedgerlightError(
         `expected a list item ("- key: value") under "${openList.key}"`,
         { file, line: lineNo },
       );
     }
     if (indent !== itemIndent + 2) {
-      throw new LanternError(
+      throw new LedgerlightError(
         `unexpected indentation (expected ${itemIndent + 2} spaces to continue the list item, got ${indent})`,
         { file, line: lineNo },
       );
     }
     const m = KEY_RE.exec(body);
     if (!m) {
-      throw new LanternError(`expected "key: value", got: ${body}`, {
+      throw new LedgerlightError(`expected "key: value", got: ${body}`, {
         file,
         line: lineNo,
       });
@@ -241,7 +241,7 @@ export function parseYamlSubset(
 
   for (const list of doc.lists) {
     if (list.items.length === 0) {
-      throw new LanternError(`key "${list.key}" has no value and no list items`, {
+      throw new LedgerlightError(`key "${list.key}" has no value and no list items`, {
         file,
         line: list.line,
       });

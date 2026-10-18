@@ -6,13 +6,13 @@
  * as given. The motivating failure for this tool involved a git repository
  * nested inside another one, where a checker pointed at the outer repo
  * false-negatived every commit citation. So every git call here is
- * `git -C <repoRoot>`, and lantern reports when the repo root it was handed is
+ * `git -C <repoRoot>`, and ledgerlight reports when the repo root it was handed is
  * not itself the top level of a repository.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { LanternError } from './errors.js';
+import { LedgerlightError } from './errors.js';
 import { normalizePath } from './paths.js';
 import type { Claim, ClaimBlock, ResolvedBlock, Resolution } from './types.js';
 
@@ -37,8 +37,8 @@ export interface RepoContext {
 
 export function openRepo(repoRoot: string): RepoContext {
   if (!fs.existsSync(repoRoot) || !fs.statSync(repoRoot).isDirectory()) {
-    throw new LanternError(
-      `repo path from lantern-config does not exist or is not a directory: ${repoRoot}`,
+    throw new LedgerlightError(
+      `repo path from ledgerlight-config does not exist or is not a directory: ${repoRoot}`,
     );
   }
   const top = git(repoRoot, ['rev-parse', '--show-toplevel']);

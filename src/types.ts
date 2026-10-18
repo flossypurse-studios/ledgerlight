@@ -50,6 +50,8 @@ export interface ParsedLedger {
   blocks: ClaimBlock[];
   /** L-numbers found in the loss-list section, in document order */
   losses: string[];
+  /** non-fatal problems with the ledger itself, e.g. deprecated fence tags */
+  warnings: string[];
 }
 
 /** Outcome of checking a claim against the repository on disk. Produced by resolve.ts. */
@@ -124,6 +126,8 @@ export interface VerifyResult {
   losses: LossResult[];
   /** non-fatal observations that do not affect the exit code */
   notes: string[];
+  /** problems with the ledger itself that do not affect the exit code; also printed to stderr */
+  warnings: string[];
   summary: {
     total: number;
     lit: number;

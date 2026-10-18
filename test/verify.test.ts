@@ -46,7 +46,7 @@ describe('parseArgs', () => {
   });
 
   const bad: Array<[string, string[], RegExp]> = [
-    ['no arguments', [], /lantern verify/],
+    ['no arguments', [], /ledgerlight verify/],
     ['an unknown command', ['check', 'l.md'], /unknown command "check"/],
     ['a missing ledger', ['verify'], /verify needs a ledger path/],
     ['an unknown option', ['verify', 'l.md', '--deep'], /unknown option "--deep"/],
@@ -177,6 +177,46 @@ describe('the full fixture ledger', () => {
       .map((l) => l.split(/\s+/)[0]);
     expect(order[0]).toBe('L6');
     expect(order[order.length - 1]).toBe('L7');
+  });
+});
+
+describe('fence tags from before the rename', () => {
+  const legacy = verify({
+    ledger: ledger('ledger-signature-legacy-tags.md'),
+    reports: [{ project: 'unit', file: report('unit.json') }],
+    json: false,
+  });
+  const current = verify({
+    ledger: ledger('ledger-signature.md'),
+    reports: [{ project: 'unit', file: report('unit.json') }],
+    json: false,
+  });
+
+  it('reads lantern-config / lantern blocks exactly as the new tags', () => {
+    expect(verdicts(legacy)).toEqual(verdicts(current));
+    expect(legacy.summary).toEqual(current.summary);
+    expect(legacy.exitCode).toBe(current.exitCode);
+  });
+
+  it('still never turns NO-REPORT into a pass under the old tags', () => {
+    const l8 = claims(legacy, 'L8');
+    expect(l8.verdict).toBe('DARK-IN-PRACTICE');
+    expect(l8.claims[0]!.verdict).toBe('NO-REPORT');
+    expect(legacy.exitCode).toBe(1);
+  });
+
+  it('warns once, naming both old tags and their replacements', () => {
+    expect(legacy.warnings).toHaveLength(1);
+    expect(legacy.warnings[0]).toMatch(/deprecated fence tags/);
+    expect(legacy.warnings[0]).toContain('"lantern-config"');
+    expect(legacy.warnings[0]).toContain('"ledgerlight-config"');
+    expect(legacy.warnings[0]).toContain('"lantern"');
+    expect(legacy.warnings[0]).toContain('"ledgerlight"');
+    expect(legacy.warnings[0]).not.toContain('\n');
+  });
+
+  it('does not warn on a ledger that uses the new tags', () => {
+    expect(current.warnings).toEqual([]);
   });
 });
 

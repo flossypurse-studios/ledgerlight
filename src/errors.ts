@@ -1,11 +1,11 @@
 /** A parse or usage failure that should be reported with file and line context. */
-export class LanternError extends Error {
+export class LedgerlightError extends Error {
   readonly file: string | undefined;
   readonly line: number | undefined;
 
   constructor(message: string, opts?: { file?: string; line?: number }) {
     super(message);
-    this.name = 'LanternError';
+    this.name = 'LedgerlightError';
     this.file = opts?.file;
     this.line = opts?.line;
   }
