@@ -2,7 +2,7 @@
 
 **Your ledger says the loss is covered. Did the test actually run?**
 
-[Site](https://ledgerlight.vercel.app) · [npm](https://www.npmjs.com/package/ledgerlight) · [Changelog](CHANGELOG.md)
+[Site](https://ledgerlight-site.vercel.app) · [npm](https://www.npmjs.com/package/ledgerlight) · [Changelog](CHANGELOG.md)
 
 A loss ledger names a handful of outcomes that must never happen to the people
 your software touches — `L1`, `L2`, `L8` — and, for each one, says which code
