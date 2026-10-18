@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ledgerlight — did the test that covers this loss actually run?</title>
+<meta name="description" content="ledgerlight reads a loss ledger and the test reports from a real run, and tells you, loss by loss, whether every check the ledger cites actually executed and passed. A test that exists but never ran is never a pass.">
+<meta property="og:title" content="ledgerlight — did the test actually run?">
+<meta property="og:description" content="An execution checker for loss ledgers. NO-REPORT is never a pass.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#fbf7f0">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   FlossyPurse Studios — "Paper" theme, tool-site edition.
+
+   Derived from flossypurse.studio/public/styles.css. Same three type roles, same
+   paper/ink ground, same discipline: the loudness lives in colour and display
+   type; grid, spacing and body copy stay quiet.
+
+     Bricolage Grotesque  display  — headlines, wordmark, numbers
+     Inter                body     — everything you actually read
+     JetBrains Mono       receipts — commands, output, labels, counts
+
+   Colour never carries body text. Each tool owns ONE hue from the studio's five.
+   --accent is the hue at full chroma (marks, rails, rules, large display only).
+   --accent-ink is that hue darkened to clear 4.5:1 on both paper and white, and
+   is the only coloured value allowed to carry small text or a link.
+
+   Every tool site sets its own --accent block. Nothing else in this file changes
+   between sites — that is what makes them read as one studio.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* type */
+  --font-display: "Bricolage Grotesque", "Archivo Black", ui-sans-serif, system-ui, sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --display-weight: 800;
+  --display-tracking: -0.045em;
+
+  --h1: 2.6rem;
+  --h2: 1.75rem;
+  --h3: 1.25rem;
+  --lead: 1.08rem;
+  --body: 1rem;
+  --small: 0.9rem;
+  --micro: 0.78rem;
+
+  /* surfaces and ink */
+  --bg: #fbf7f0;
+  --surface: #ffffff;
+  --surface-2: #f6f1e7;
+  --line: #e7e0d2;
+  --line-soft: #efe9dd;
+  --rule: #16181d;
+  --fg: #16181d;
+  --fg-dim: #4a4f58;
+  --fg-mute: #7c8189;
+
+  /* the studio five — always available, the mark uses two of them */
+  --hero: #ff4d3d;
+  --marigold: #ffb302;
+  --teal: #0fa3a3;
+  --ultramarine: #2b4fe0;
+  --magenta: #e5399a;
+
+  --warn: #b07600;
+  --ok: #0b7d5e;
+  --bad: #c0362b;
+
+  /* terminal — the one place the page goes dark on purpose */
+  --term-bg: #16181d;
+  --term-fg: #e8e9e5;
+  --term-mute: #8b9098;
+  --term-ok: #63c98a;
+  --term-bad: #ff8b7e;
+  --term-key: #8fb2ff;
+  --term-warn: #ffc75c;
+
+  /* space */
+  --gap: 1rem;
+  --section-y: 4rem;
+  --measure: 36rem;
+  --wide: 62rem;
+}
+
+@media (min-width: 44em) {
+  :root { --h1: 3.3rem; --h2: 2.1rem; --lead: 1.15rem; --section-y: 4.5rem; }
+}
+@media (min-width: 64em) {
+  :root { --h1: 3.9rem; --h2: 2.35rem; --lead: 1.2rem; --section-y: 5rem; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+h1 { font-size: var(--h1); }
+h2 { font-size: var(--h2); line-height: 1.06; }
+h3 { font-size: var(--h3); line-height: 1.18; letter-spacing: -0.03em; }
+h1 .hl, h1 span.hl, .hero h1 span { color: var(--accent); }
+
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+p.muted, .sub { color: var(--fg-dim); }
+
+a {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: color-mix(in srgb, var(--accent-ink) 35%, transparent);
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-color: var(--accent-ink); }
+
+code, .mono-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.wrap { width: 100%; max-width: var(--wide); margin: 0 auto; padding: 0 1.25rem; }
+@media (min-width: 44em) { .wrap { padding: 0 2rem; } }
+.measure { max-width: var(--measure); }
+
+/* ---------- header ----------
+   The mark is the family signal: full-colour coral-and-marigold fish on every
+   tool site, tool name beside it in the display face. */
+
+.site-head { padding: 1.5rem 0 0; font-size: var(--small); }
+.site-head .wrap {
+  display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem;
+  align-items: center; justify-content: space-between;
+}
+
+/* No flex gap: the wordmark is a text node plus a <span>, and a gap would open a
+   hole inside the name. The mark carries its own margin instead. */
+.brand {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 1.05rem; letter-spacing: -0.035em;
+  color: var(--fg); text-decoration: none;
+}
+.brand svg, .brand img { width: 1.85rem; height: 1.85rem; flex: none; display: block; margin-right: 0.6rem; }
+.brand .dim { color: var(--accent); }
+
+.site-head nav, .nav-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.35rem; }
+.site-head nav a, .nav-links a { color: var(--fg-dim); text-decoration: none; font-weight: 500; }
+.site-head nav a:hover, .nav-links a:hover { color: var(--accent-ink); }
+
+/* ---------- eyebrow ----------
+   The coral block is deliberately NOT the tool's accent. It is the one mark of
+   the parent studio that is identical on all five sites. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--micro); font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--fg-mute);
+  margin: 0 0 1.25rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.eyebrow::before { content: ""; width: 1.35rem; height: 0.55rem; background: var(--hero); flex: none; }
+.eyebrow a { color: inherit; text-decoration: none; }
+.eyebrow a:hover { color: var(--fg); }
+
+/* ---------- hero ---------- */
+
+.hero { padding: 3.25rem 0 2.25rem; border-top: 0; }
+.hero .lead, .tagline {
+  font-size: var(--lead); color: var(--fg-dim);
+  margin: 1.5rem 0 0; max-width: var(--measure);
+}
+.hero .lead strong, .tagline strong { color: var(--fg); font-weight: 600; }
+.hero .lead em, .tagline em { font-style: normal; color: var(--accent-ink); font-weight: 500; }
+
+.badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1.75rem 0 0; }
+.badges img { height: 20px; }
+.badges a { text-decoration: none; }
+
+.cta, .cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.75rem; }
+
+.btn {
+  display: inline-block; padding: 0.75rem 1.25rem;
+  border: 2px solid var(--fg); background: transparent; color: var(--fg);
+  font-family: var(--font-body); font-size: var(--small); font-weight: 600;
+  text-decoration: none; border-radius: 6px;
+}
+.btn:hover { background: var(--fg); color: var(--bg); }
+.btn.primary, .btn-primary {
+  background: var(--accent-ink); border-color: var(--accent-ink); color: #fff;
+}
+.btn.primary:hover, .btn-primary:hover { background: var(--fg); border-color: var(--fg); color: #fff; }
+.btn.ghost { background: transparent; }
+
+/* ---------- jump row ----------
+   Two of these sites open with a dozen links to their own sections. As buttons
+   they read as a wall of equal-weight calls to action, which is a lie — there is
+   one call to action and the rest is a table of contents. Set them as mono chips
+   so the eye sorts them in one pass instead of reading thirteen decisions. */
+.jump {
+  display: flex; flex-wrap: wrap; gap: 0.4rem;
+  margin-top: 1.5rem; max-width: 46rem;
+}
+.jump a {
+  font-family: var(--font-mono);
+  font-size: var(--micro);
+  color: var(--fg-dim);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.32rem 0.6rem;
+  background: var(--surface);
+  white-space: nowrap;
+}
+.jump a:hover { border-color: var(--accent); color: var(--accent-ink); }
+.jump-label {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono); font-size: var(--micro);
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-mute);
+  flex-basis: 100%;
+}
+
+/* ---------- sections ---------- */
+
+section { padding: var(--section-y) 0; border-top: 1px solid var(--line); }
+section > h2:first-child, section > .eyebrow:first-child { margin-top: 0; }
+section h2 { margin-bottom: 0.9rem; }
+section h3 { margin: 1.75rem 0 0.5rem; }
+section > p, section > ul, section > ol { max-width: var(--measure); }
+section > p { color: var(--fg-dim); }
+.sub { margin: 0 0 1.75rem; max-width: var(--measure); }
+
+/* ---------- cards ---------- */
+
+.grid, .cards { display: grid; gap: 0.75rem; margin-top: 1.25rem; }
+@media (min-width: 44em) { .grid, .cards { grid-template-columns: 1fr 1fr; } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px; padding: 1.5rem 1.35rem;
+}
+.card h3 { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--fg); }
+.card p { color: var(--fg-dim); font-size: var(--small); margin: 0; }
+.card p + p { margin-top: 0.6rem; }
+
+/* ---------- terminal ----------
+   Dark on paper so it reads as a quotation. The window chrome is gone; the three
+   dots are re-cut as sharp studio-palette squares, which is the same affordance
+   without the stock-screenshot cliche. */
+
+.term, .install {
+  background: var(--term-bg); border: 0; border-radius: 8px;
+  margin: 1.75rem 0 0; overflow: hidden; text-align: left; max-width: 46rem;
+}
+.term .bar {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.6rem 1.1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.term .bar span { display: inline-block; width: 9px; height: 9px; border-radius: 0; }
+.dot-r { background: var(--hero); }
+.dot-y { background: var(--marigold); }
+.dot-g { background: var(--teal); }
+
+.term pre, .install pre {
+  margin: 0; padding: 1.15rem 1.25rem; overflow-x: auto;
+  font-family: var(--font-mono); font-size: var(--small); line-height: 1.7;
+  white-space: pre; color: var(--term-fg);
+}
+.c-cmd { color: var(--term-fg); }
+.c-muted, .cmt, .c-comment { color: var(--term-mute); }
+.c-green, .prompt { color: var(--term-ok); }
+.c-red { color: var(--term-bad); }
+.c-key, .kv { color: var(--term-key); }
+.c-yellow { color: var(--term-warn); }
+.c-str { color: var(--term-ok); }
+.c-acc { color: var(--term-key); }
+
+pre.block {
+  background: var(--term-bg); border: 0; border-radius: 8px;
+  padding: 1.15rem 1.25rem; overflow-x: auto; margin: 1.25rem 0;
+  font-family: var(--font-mono); font-size: var(--small); line-height: 1.7;
+  color: var(--term-fg);
+}
+
+/* ---------- tables ---------- */
+
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; margin-top: 1.25rem; font-size: var(--small); }
+th, td { text-align: left; padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th {
+  color: var(--fg-mute); font-family: var(--font-mono); font-weight: 500;
+  font-size: var(--micro); letter-spacing: 0.1em; text-transform: uppercase;
+  border-bottom: 2px solid var(--rule);
+}
+td:first-child { color: var(--fg); font-weight: 500; }
+td.desc { color: var(--fg-dim); font-weight: 400; }
+td code, .inline-code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 0.1em 0.4em; border-radius: 4px; color: var(--fg);
+  white-space: nowrap;
+}
+p code, li code {
+  font-family: var(--font-mono); font-size: 0.88em;
+  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 0.1em 0.4em; border-radius: 4px;
+}
+
+/* ---------- lists ---------- */
+
+ul, ol { padding-left: 1.15rem; }
+li { margin-bottom: 0.4rem; color: var(--fg-dim); }
+li strong, li b { color: var(--fg); font-weight: 600; }
+.step { color: var(--fg-dim); font-size: var(--small); margin-bottom: 0.5rem; }
+.step b { color: var(--fg); }
+
+/* ---------- footer + studio credit ----------
+   The credit is the contract with the parent brand: same mark, same wording, same
+   place, on all five sites. Do not localise it. */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 0 3rem;
+  font-family: var(--font-mono); font-size: var(--micro);
+  color: var(--fg-mute); text-align: left;
+}
+footer .wrap { display: grid; gap: 0.6rem; }
+footer p { margin: 0; }
+footer a { color: var(--fg-dim); text-decoration: none; }
+footer a:hover { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px; }
+footer b { color: var(--fg); font-weight: 500; }
+
+.studio-credit { margin-top: 1.25rem !important; }
+.studio-credit a { display: inline-flex; align-items: center; gap: 0.45em; color: var(--fg-mute); }
+.studio-credit a:hover { color: var(--fg); }
+.studio-credit svg { flex: none; }
+
+::selection { background: var(--accent); color: #fff; }
+
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  a, .btn, .card { transition: color .12s, background-color .12s, border-color .12s; }
+}
+
+@media (max-width: 640px) {
+  .term pre, .install pre, pre.block { font-size: 0.82rem; }
+}
+
+
+/* ── ledgerlight · marigold · "a light is only lit if it ran" ────────────────
+   The tool's whole argument is that a light which exists is not a light which
+   burned. So the accent is spent only on the claim that did NOT run — the
+   NO-REPORT row, the dark loss — and never on a pass. If the accent ends up
+   on something green, the change is wrong, not the rule. */
+
+:root {
+  --accent: #ffb302;       /* marigold */
+  --accent-ink: #8a5e00;   /* 5.34:1 on paper, 5.70:1 on white */
+  --accent-wash: #fff6dc;
+}
+
+.grid > .card:nth-child(odd)  { background: var(--surface); }
+.grid > .card:nth-child(even) { background: var(--surface-2); }
+
+.diff {
+  background: var(--accent-wash);
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+  margin-left: -0.9rem;
+  display: block;
+}
+.term .diff, pre.block .diff {
+  background: rgba(255, 179, 2, 0.14);
+  border-left-color: var(--accent);
+  margin-left: -1.25rem;
+  padding-left: 1.05rem;
+}
+.c-warn { color: var(--term-warn); }
+
+.hero h1 span, h1 .hl {
+  color: var(--fg);
+  background: linear-gradient(transparent 62%, var(--accent-wash) 62%, var(--accent-wash) 96%, transparent 96%);
+  box-shadow: inset 0 -0.06em 0 var(--accent);
+}
+
+.card:hover { border-color: var(--accent); }
+td.hl, td .hl { color: var(--accent-ink); font-weight: 600; }
+td code { white-space: nowrap; }
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NMX81HBTX5"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NMX81HBTX5');</script>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="30" height="30" aria-hidden="true">
+        <title>FlossyPurse Studios</title>
+        <defs>
+          <clipPath id="llPlate">
+            <path d="M112 64 C100 38 66 36 44 55 L23 37 L17 44 L36 64 L17 84 L23 91 L44 73 C66 94 100 92 112 64 Z" transform="rotate(-34 65 64) translate(8 3)"/>
+          </clipPath>
+          <mask id="llEye">
+            <rect x="-40" y="-40" width="208" height="208" fill="#fff"/>
+            <circle cx="90" cy="56" r="5" fill="#000" transform="rotate(-34 65 64)"/>
+          </mask>
+        </defs>
+        <g transform="translate(-5 -1)">
+          <g mask="url(#llEye)">
+            <path d="M112 64 C100 38 66 36 44 55 L23 37 L17 44 L36 64 L17 84 L23 91 L44 73 C66 94 100 92 112 64 Z" transform="rotate(-34 65 64) translate(8 3)" fill="#FFB302"/>
+            <path d="M112 64 C100 38 66 36 44 55 L23 37 L17 44 L36 64 L17 84 L23 91 L44 73 C66 94 100 92 112 64 Z" transform="rotate(-34 65 64)" fill="#FF4D3D"/>
+            <path d="M112 64 C100 38 66 36 44 55 L23 37 L17 44 L36 64 L17 84 L23 91 L44 73 C66 94 100 92 112 64 Z" transform="rotate(-34 65 64)" fill="#FF3600" clip-path="url(#llPlate)"/>
+          </g>
+        </g>
+      </svg>ledgerlight</a>
+    <nav>
+      <a href="#why">Why</a>
+      <a href="#install">Install</a>
+      <a href="#verdicts">Verdicts</a>
+      <a href="#format">Format</a>
+      <a href="#ci">CI</a>
+      <a href="https://github.com/flossypurse-studios/ledgerlight">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow"><a href="https://flossypurse.studio">A FlossyPurse Studios tool</a></p>
+      <h1>Your ledger says it&rsquo;s covered. <span class="hl">Did the test run?</span></h1>
+      <p class="lead">A loss ledger names the outcomes that must never happen to the people your software touches, and the tests that stand in front of each one. ledgerlight reads the ledger and the reports from a real test run, and tells you, loss by loss, whether every cited check <em>actually executed and passed</em> in that run.</p>
+      <div class="badges">
+        <a href="https://github.com/flossypurse-studios/ledgerlight"><img src="https://img.shields.io/badge/license-MIT-4a4f58" alt="MIT license"></a>
+        <a href="https://github.com/flossypurse-studios/ledgerlight"><img src="https://img.shields.io/badge/deps-zero-4a4f58" alt="zero dependencies"></a>
+      </div>
+      <div class="cta-row">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn ghost" href="https://github.com/flossypurse-studios/ledgerlight">View on GitHub &rarr;</a>
+    </div>
+    <nav class="jump" aria-label="Jump to a section">
+      <p class="jump-label">On this page</p>
+      <a href="#why">When you&rsquo;d reach for it</a>
+      <a href="#verdicts">The verdicts</a>
+      <a href="#format">The ledger blocks</a>
+      <a href="#ci">In CI</a>
+      <a href="#limits">What it can&rsquo;t tell you</a>
+    </nav>
+      <div class="term">
+        <div class="bar"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+<pre><span class="c-muted">$</span> <span class="c-cmd">npx ledgerlight@0.1.0 verify loss-ledger.md --report unit=reports/unit.json</span>
+<span class="c-muted">ledger: loss-ledger.md</span>
+<span class="c-muted">reports: unit</span>
+
+<span class="diff"><span class="c-cmd">L8</span>  <span class="c-warn">DARK-IN-PRACTICE</span>
+  <span class="c-warn">NO-REPORT</span>  <span class="c-muted">test  test/integration/erasure-completeness.test.ts (project: integration)</span>
+             <span class="c-muted">no report supplied for project "integration"; nothing shows this test ever ran</span></span>
+<span class="c-cmd">L1</span>  <span class="c-green">LIT</span>
+  <span class="c-green">LIT</span>        <span class="c-muted">test  test/unit/refund-guards.test.ts (project: unit)</span>
+             <span class="c-muted">3 of 3 cases passed in the "unit" report</span>
+
+<span class="c-cmd">2 losses: 1 lit, 1 dark-in-practice, 0 unclaimed.</span>
+<span class="c-muted">A loss is only lit when every claim standing in front of it ran, in a run you supplied.</span></pre>
+      </div>
+    </div>
+  </section>
+
+<section id="why">
+  <h2>A test that exists <span style="color:var(--fg-mute)">is not a test that ran</span></h2>
+  <p>You are about to say &ldquo;that&rsquo;s covered&rdquo; and point at a green test run. The failure ledgerlight catches is not a missing test. The ledger claims a loss is covered by a test, the test exists, it is well written, and it does not execute in the run people quote as proof.</p>
+  <p>A typical way it happens: the test lives in a separate <code class="inline-code">integration</code> project behind <code class="inline-code">describe.skipIf(!HAS_DB)</code>, so the default <code class="inline-code">npm test</code> never runs it, and the green default run gets cited anyway. Above, L8&rsquo;s test is real and passes when it runs. Nothing supplied shows that it ran.</p>
+  <div class="grid">
+    <div class="card">
+      <h3>Reports come from the command line</h3>
+      <p>The ledger says what should guard a loss. The <code>--report</code> flags say what you actually ran. They never live in the same file, so a ledger cannot vouch for itself.</p>
+    </div>
+    <div class="card">
+      <h3>It refuses to guess</h3>
+      <p>No loss-list section, an unknown key, a typo&rsquo;d <code>projet:</code>: each is an error with the file and line, exit 2. A claim silently dropped would be the very failure it exists to catch.</p>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+<pre class="block">npx ledgerlight@0.1.0 verify docs/loss-ledger.md \
+  --report unit=reports/unit.json \
+  --report integration=reports/integration.json</pre>
+  <p class="muted">Nothing to install and no config file. Node 20 or newer, zero runtime dependencies. Pin the version in anything you write down. Reports are vitest or Playwright JSON: <code class="inline-code">vitest run --reporter=json --outputFile=unit.json</code>, <code class="inline-code">playwright test --reporter=json &gt; e2e.json</code>.</p>
+  <table>
+    <thead><tr><th>exit</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td class="desc">every loss is <code>LIT</code></td></tr>
+      <tr><td>1</td><td class="desc">some loss is <code>DARK-IN-PRACTICE</code> or <code>UNCLAIMED</code></td></tr>
+      <tr><td>2</td><td class="desc">usage or parse error</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="verdicts">
+  <h2>The verdicts</h2>
+  <p>Per claim. A loss is <code class="inline-code">LIT</code> only when every one of its claims is; otherwise it is <code class="inline-code">DARK-IN-PRACTICE</code>, headlined by its weakest claim, and the output is ordered worst first. A loss in the list with no claim block is <code class="inline-code">UNCLAIMED</code>.</p>
+  <table>
+    <thead><tr><th>verdict</th><th>meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>LIT</code></td><td class="desc">resolved, and for tests, in a supplied report with every case passing</td></tr>
+      <tr><td><code>SKIPPED</code></td><td class="desc">in a report, but some or all cases were skipped or todo; says how many of how many</td></tr>
+      <tr><td><code>FAILED</code></td><td class="desc">in a report, with a failing case (a flaky pass counts as failed)</td></tr>
+      <tr><td><code>NOT-RUN</code></td><td class="desc">a report was supplied for this project, but this file is not in it</td></tr>
+      <tr><td class="hl"><code>NO-REPORT</code></td><td class="desc"><b>no report was supplied for this claim&rsquo;s project at all.</b> Never a pass. A ledger checked with no reports is entirely <code>NO-REPORT</code>, and exits 1.</td></tr>
+      <tr><td><code>UNRESOLVED</code></td><td class="desc">the file, symbol or commit is not in the repo</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="format">
+  <h2>The ledger blocks</h2>
+  <p>Two fenced block types in your markdown ledger. Everything else is prose, and ignored. One config block gives the git root every citation resolves against, relative to the ledger file:</p>
+<pre class="block">```ledgerlight-config
+repo: ../app
+```</pre>
+  <p>Then one claim block right after each light&rsquo;s prose. A <code class="inline-code">test:</code> claim needs a <code class="inline-code">project:</code>, which is what <code class="inline-code">--report &lt;project&gt;=</code> keys off:</p>
+<pre class="block">```ledgerlight
+loss: L8
+covers:
+  - test: test/unit/refund-guards.test.ts
+    project: unit
+  - file: lib/refund-guards.ts
+  - symbol: applyRefund
+    file: lib/order-router.ts
+  - commit: 7c3a1e9
+```</pre>
+  <p class="muted">The loss list itself is any heading containing &ldquo;loss list&rdquo;, with <code class="inline-code">**L1**</code>-style identifiers in bold or table-leading position. The pre-release tags <code class="inline-code">lantern-config</code> and <code class="inline-code">lantern</code> still work, with one warning per ledger.</p>
+</section>
+
+<section id="ci">
+  <h2>In CI</h2>
+<pre class="block">- run: npx vitest run --project unit --reporter=json --outputFile=reports/unit.json
+- run: npx vitest run --project integration --reporter=json --outputFile=reports/integration.json
+- run: &gt;
+    npx ledgerlight@0.1.0 verify docs/loss-ledger.md
+    --report unit=reports/unit.json
+    --report integration=reports/integration.json</pre>
+  <p class="muted">Generate the reports in the same job, so they are the run you are talking about. Exit 1 fails the job. <code class="inline-code">--json</code> prints the whole result as data.</p>
+</section>
+
+<section id="limits">
+  <h2>What it can&rsquo;t tell you</h2>
+  <ul>
+    <li><b>A report is taken at its word.</b> ledgerlight cannot tell whether the JSON came from the run you are talking about or a lucky run last Tuesday.</li>
+    <li><b><code class="inline-code">symbol:</code> is a text search,</b> not AST analysis. It will match inside a comment and cannot tell an export from a local.</li>
+    <li><b>Only four claim kinds exist</b>: test, file, symbol, commit. A light that is a manual procedure or a monitor is invisible to it.</li>
+    <li><b>One command.</b> <code class="inline-code">verify</code> is the whole tool for now.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p class="muted"><b>ledgerlight</b> — MIT licensed, zero dependencies.<br>
+    <a href="https://github.com/flossypurse-studios/ledgerlight">source</a> &middot;
+    <a href="https://github.com/flossypurse-studios/ledgerlight/issues">issues</a> &middot;
+    <a href="https://flossypurse.studio">FlossyPurse Studios</a></p>
+<p class="studio-credit">
+  <a href="https://flossypurse.studio" style="color:inherit;text-decoration:none;opacity:.8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="18" height="18" role="img" aria-label="FlossyPurse Studios" style="vertical-align:-3px;margin-right:.45em"><title>FlossyPurse Studios</title><path fill="currentColor" fill-rule="evenodd" transform="translate(-5 -1) rotate(-34 65 64)" d="M112 64 C100 38 66 36 44 55 L23 37 L17 44 L36 64 L17 84 L23 91 L44 73 C66 94 100 92 112 64 Z M95 56 A5 5 0 1 1 85 56 A5 5 0 1 1 95 56 Z"/></svg>A FlossyPurse Studios project</a>
+</p>
+  </div>
+</footer>
+</body>
+</html>
