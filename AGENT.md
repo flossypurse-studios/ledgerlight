@@ -12,8 +12,7 @@ ran and passed — not just whether the referenced file exists.
 
 - Repo: github.com/flossypurse-studios/ledgerlight (public, MIT; renamed from
   `lantern`, GitHub redirects the old URL). Site: `site/`, deployed to the
-  Vercel project `ledgerlight-site` (team "Cully's projects", beside
-  otherbox-site and packproof-site) at ledgerlight-site.vercel.app;
+  Vercel project `ledgerlight-site` at ledgerlight-site.vercel.app;
   ledgerlight.dev is not bought yet.
 - npm: `ledgerlight`, **not published yet.** The first publish has to be done
   by hand with the owner's npm sign-in; after that, releases go through
@@ -21,7 +20,7 @@ ran and passed — not just whether the referenced file exists.
   pinned to SHAs, npm pinned to 11.21.1), triggered only by a `v*` tag.
 - Build `dist/` explicitly (`npm run build`) before `npm pack` / `npm publish`.
   There is a `prepack` script, but a machine with `ignore-scripts=true` in its
-  npmrc (the workspace Mac has it) skips it and packs a tarball with no bin;
+  npmrc skips it and packs a tarball with no bin;
   packproof caught exactly that on 2026-10-18. Before any release: `npm test`,
   `npm run build`, `npm pack`, `npx packproof@0.16.1 ./ledgerlight-<v>.tgz`.
 - Deploy the site: `cd site && vercel deploy` (preview, behind Vercel login),
