@@ -12,17 +12,25 @@ ran and passed — not just whether the referenced file exists.
 
 - Repo: github.com/flossypurse-studios/ledgerlight (public, MIT; renamed from
   `lantern`, GitHub redirects the old URL). Site: `site/`, deployed to the
-  Vercel project `ledgerlight-site` at ledgerlight-site.vercel.app;
-  ledgerlight.dev is not bought yet.
+  Vercel project `ledgerlight-site`, served at ledgerlight.dev.
 - npm: `ledgerlight`, **not published yet.** The first publish has to be done
-  by hand with the owner's npm sign-in; after that, releases go through
-  `.github/workflows/publish.yml` (OIDC trusted publishing, provenance, actions
-  pinned to SHAs, npm pinned to 11.21.1), triggered only by a `v*` tag.
+  by hand with the owner's npm sign-in (#2): trusted publishing can only be
+  registered on a package that already exists. Publish the exact tarball
+  packproof checked (`npm pack`, `npx --yes packproof@0.16.2
+  ./ledgerlight-0.1.0.tgz`, `npm publish ./ledgerlight-0.1.0.tgz`), then
+  register the trusted publisher on npmjs.com (ledgerlight → Settings →
+  Trusted publishing: `flossypurse-studios` / `ledgerlight` / `publish.yml`).
+  Don't push a `v0.1.0` tag afterwards: the workflow would try to publish a
+  version that already exists. The next release is `v0.1.1`.
+- After that, releases go through `.github/workflows/publish.yml`, triggered
+  only by a `v*` tag: a `verify` job (test, build, packproof) with no publish
+  rights, then a `publish` job (OIDC trusted publishing, provenance, actions
+  pinned to SHAs, npm pinned to 11.21.1).
 - Build `dist/` explicitly (`npm run build`) before `npm pack` / `npm publish`.
   There is a `prepack` script, but a machine with `ignore-scripts=true` in its
   npmrc skips it and packs a tarball with no bin;
   packproof caught exactly that on 2026-10-18. Before any release: `npm test`,
-  `npm run build`, `npm pack`, `npx packproof@0.16.1 ./ledgerlight-<v>.tgz`.
+  `npm run build`, `npm pack`, `npx packproof@0.16.2 ./ledgerlight-<v>.tgz`.
 - Deploy the site: `cd site && vercel deploy` (preview, behind Vercel login),
   check it, then `vercel deploy --prod`.
 
