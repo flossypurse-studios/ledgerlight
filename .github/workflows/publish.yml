@@ -26,6 +26,10 @@ name: publish
 # dist/ is built by an explicit step, not only by the prepack script: a machine with
 # ignore-scripts=true in its npmrc skips prepack and would publish a package with no bin.
 #
+# packproof runs before publish: it packs this tree, installs the tarball into an
+# empty project and runs every bin and entry point, so a tarball that would break on
+# install stops the release here. Pinned like the actions above; bump deliberately.
+#
 # Trigger: push a tag matching v* (e.g. `git tag v0.1.0 && git push origin v0.1.0`).
 # Tags only, no manual dispatch: a release is a tagged commit, nothing else.
 
@@ -52,5 +56,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npx --yes packproof@0.16.2
       - run: npm install -g npm@11.21.1
       - run: npm publish
